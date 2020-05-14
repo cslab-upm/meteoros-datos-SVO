@@ -139,7 +139,7 @@ except:
     flogs.close()
     sys.exit(1)
 
-# Funcion que lee los datos del dat y los escribe en otro fichero
+# Funcion que lee los datos del dat y los escribe en otro fichero 
 def manejodats(archivos,flag,duracion,eliminados,t_deteccion):
     try:
         for i in range(len(archivos)):
