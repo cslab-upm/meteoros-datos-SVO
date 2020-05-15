@@ -18,6 +18,8 @@ from astropy.io.fits import Header
 from astropy import units as u
 import gzip
 import warnings
+import mysql.connector
+from mysql.connector import errorcode
 warnings.filterwarnings("ignore",module='astropy.io.votable.tree')
 
 #########################################
@@ -140,7 +142,7 @@ except:
     sys.exit(1)
 
 # Funcion que lee los datos del dat y los escribe en otro fichero 
-def manejodats(archivos,flag,duracion,eliminados,t_deteccion):
+def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
     try:
         for i in range(len(archivos)):
             array_lineas = []
@@ -241,12 +243,21 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion):
            #     continue
             fileTabla1 = open(directorio + "/" + archivos[i].replace('.dat','_tabla1.txt'),"w")
             fileTabla2 = open(directorio + "/" + archivos[i].replace('.dat','_tabla2.txt'),"w")
+            
+            fin = len(sinRuido) - 1
             t_ini = float(sinRuido[0][0])
+            t_fin = float(sinRuido[fin][0])
+            dur = round((t_fin - t_ini)*1000)
+            
+            if(dur <= 0):
+                eliminados.append(i)
+                continue
+            else:
+                duracion.append(dur)
+            
             t_deteccion.append(datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y-%m-%d-%H%M%S'))
+            fecha.append(datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y/%m/%d-%H:%M:%S.%f'))
             for l in range(len(sinRuido)):
-                if(l == (len(sinRuido) - 1)):
-                    t_fin = float(sinRuido[l][0])
-                    duracion.append(t_fin - t_ini)
                 ts = float(sinRuido[l][0])
                 t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
                 t = t[:-3]
@@ -256,6 +267,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion):
             fileTabla1.close()
             fileTabla2.close()  
     except:
+        
         flogs.write("LOG: ERROR en la lectura de los .dat o en la eliminacion del ruido en los " + flag + "\n")
         flogs.close()
         shutil.rmtree(directorio)
@@ -293,8 +305,7 @@ def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_de
             
             #fichero = nombreFicheros + nombreFits + '.fits'
             fichero = estacion + '_' + t_deteccion[i] + '.fits'
-            
-            c5 = fits.Card('DURATION', round(duracion[i]*1000,3),'Duracion del evento (ms)')
+            c5 = fits.Card('DURATION', duracion[i],'Duracion del evento (ms)')
             primaryHeaders.append(c5)
             c6 = fits.Card('TITLE', fichero, 'Nombre del fichero')
             primaryHeaders.append(c6)
@@ -541,6 +552,32 @@ def moverArchivosVOTable(ficherosFITS,flag):
         shutil.rmtree(directorio)
         sys.exit(1)      
 
+# Funcion que inserta los datos de los meteoros a la DDBB
+def insertarDatos(meteoro_id,fecha,duracion):
+    try:
+        #conexion con la DDBB
+        cnx = mysql.connector.connect(user='user',password='password',host='localhost',database='meteoros')
+        cursor = cnx.cursor()
+
+        for l in range(len(fecha)):
+            add_meteoro = ("INSERT INTO datos_meteoros " "(ID,FECHA,ESTACION,DURACION) " "VALUES (%s, %s, %s, %s)")
+            data_meteoro = (meteoro_id[l],fecha[l],estacion,duracion[l])
+            cursor.execute(add_meteoro,data_meteoro)
+            cnx.commit()
+        cursor.close()
+        cnx.close()
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Something is wrong with your user name or password")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("Database does not exist")
+        else:
+            print(err)
+    else:
+        cnx.close()
+        
+
 #########################################
 ###         INICIO DEL SCRIPT         ###
 #########################################
@@ -568,6 +605,7 @@ for i in ["overdense","fakes","underdense"]:
     duration = []
     eliminados = []
     t_deteccion = []
+    fecha = []
     try:
         dirs = os.listdir(dirGuardados + estacion + dirEchoes + diaExtraido + "/screenshots/" + i)
         for file in dirs:
@@ -579,14 +617,14 @@ for i in ["overdense","fakes","underdense"]:
         flogs.write("LOG: ERROR al listar los directorios con los gnuplots y las screenshots " + i + "\n")
         flogs.close()
         shutil.rmtree(directorio)
-        sys.exit(1)   
+        sys.exit(1) 
         
     array_screenshots.sort()
     array_dats.sort()
 
     print("LOG: Va a comenzar la conversion de los archivos " + i)
     flogs.write("LOG: Conversion de los archivos " + i +  ":\n")
-    manejodats(array_dats,i,duration,eliminados,t_deteccion)
+    manejodats(array_dats,i,duration,eliminados,t_deteccion,fecha)
     flogs.write("LOG: Datos leidos de los .dat y ruido eliminado de los " + i + " con exito\n")
     conversionfits(array_screenshots,array_dats,i,duration,eliminados,t_deteccion)
     flogs.write("LOG: Conversion de los archivos " + i + " a FITS realizada con exito\n")
@@ -597,7 +635,7 @@ for i in ["overdense","fakes","underdense"]:
     flogs.write("LOG: Conversion de fits a VOTable de los " + i + " realizada con exito\n")
     moverArchivosVOTable(ficherosFITS,i)
     flogs.write("LOG: Ficheros VOTable de los " + i + " comprimidos y movidos con exito\n")
-
+    insertarDatos(t_deteccion,fecha,duration)
 
 shutil.rmtree(directorio)
 flogs.close()
