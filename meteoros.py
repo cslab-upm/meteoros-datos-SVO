@@ -105,11 +105,11 @@ try:
     totalValores = valsPrimaryHDU + valores
     totalDescripciones = desPrimaryHDU + descripciones
     
-    c1 = fits.Card('EXTNAME', 'PrimaryHDU', 'nombre de la extension')
-    c2 = fits.Card('EXTNAME', 'ImagenHDU', 'nombre de la extension')
-    c3 = fits.Card('EXTNAME', 'EspectrogramaHDU', 'nombre de la extension')
-    c4 = fits.Card('EXTNAME', 'DatosHDU', 'nombre de la extension')
-    c5 = fits.Card('DATE', diaExtraido, 'fecha de la deteccion')
+    c1 = fits.Card('EXTNAME', 'PrimaryHDU', 'name of the extension')
+    c2 = fits.Card('EXTNAME', 'ImageHDU', 'name of the extension')
+    c3 = fits.Card('EXTNAME', 'SpectrogramHDU', 'name of the extension')
+    c4 = fits.Card('EXTNAME', 'DatasHDU', 'name of the extension')
+    c5 = fits.Card('DATE', diaExtraido, 'date of its detection (YYYY-MM-DD)')
     
     primaryHeaders = [c1,c5]
     imgHeaders = [c2,c5]
@@ -305,9 +305,9 @@ def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_de
             
             #fichero = nombreFicheros + nombreFits + '.fits'
             fichero = estacion + '_' + t_deteccion[i] + '.fits'
-            c5 = fits.Card('DURATION', duracion[i],'Duracion del evento (ms)')
+            c5 = fits.Card('DURATION', duracion[i],'Duration of the event(ms)')
             primaryHeaders.append(c5)
-            c6 = fits.Card('TITLE', fichero, 'Nombre del fichero')
+            c6 = fits.Card('TITLE', fichero, 'Name of the file')
             primaryHeaders.append(c6)
             ph = Header(primaryHeaders)
             
@@ -347,6 +347,7 @@ def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_de
             header2.set('TTYPE3',col3T1.split(",")[0],col3T1.split(",")[1])
             header2.set('TUNIT4', 'dB')
             header2.set('TTYPE4',col4T1.split(",")[0],col4T1.split(",")[1])
+            header2.set('DURATION',duracion[i],'duration of the event(ms)')
             
             header3.set('TTYPE1',col1T2.split(",")[0],col1T2.split(",")[1])
             header3.set('TTYPE2',col2T2.split(",")[0],col2T2.split(",")[1])
@@ -357,6 +358,7 @@ def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_de
             header3.set('TUNIT4', 'dB')
             header3.set('TTYPE5',col5T2.split(",")[0],col5T2.split(",")[1])
             header3.set('TUNIT5', 'dB')
+            header3.set('DURATION',duracion[i],'duration of the event(ms)')
                 
             hdulist.flush()
             hdulist.close()
@@ -449,15 +451,26 @@ def conversionVOTable(archivosdat,flag,t_deteccion):
             resource.tables.append(tabla2)
             
             param = Param(votable,name="TITLE", datatype="char", arraysize=str(len(fichero)), value=fichero)
-            param.description = "nombre del fichero"
+            param.description = "name of the file"
             resource.params.append(param)
             
             param = Param(votable,name="DATE", datatype="char", arraysize=str(len(diaExtraido)), value=diaExtraido)
-            param.description = "fecha de la deteccion"
+            param.description = "date of its detection"
             resource.params.append(param)
             for n in range(len(totalValores)):
+                flag_u = 0
+                index = totalDescripciones[n].find('(')
+                if(index != -1):
+                    if(n == 41 or n == 44 or n== 45):
+                        flag_u = 0
+                    else:
+                        unidad = totalDescripciones[n].split('(',1)[1].split(')')[0]
+                        flag_u = 1
                 if(totalValores[n].isdigit() or (totalValores[n].startswith('-') and totalValores[n][1:].isdigit())):
-                    param = Param(votable,name=totalCabeceras[n], datatype="int",value=totalValores[n])
+                    if(flag_u == 1):
+                        param = Param(votable,name=totalCabeceras[n],datatype='int',value=totalValores[n],unit=unidad)
+                    else:
+                        param = Param(votable,name=totalCabeceras[n], datatype="int",value=totalValores[n])
                     param.description = totalDescripciones[n]
                     resource.params.append(param)
                 elif(totalValores[n] == "True" or totalValores[n] == "False"):
@@ -467,7 +480,10 @@ def conversionVOTable(archivosdat,flag,t_deteccion):
                 else:
                     try:
                         if(float(totalValores[n])):
-                            param = Param(votable,name=totalCabeceras[n], datatype="float",value=totalValores[n])
+                            if(flag_u == 1):
+                                param = Param(votable,name=totalCabeceras[n],datatype='float',value=totalValores[n],unit=unidad)
+                            else:
+                                param = Param(votable,name=totalCabeceras[n], datatype="float",value=totalValores[n])
                             param.description = totalDescripciones[n]
                             resource.params.append(param)
                     except:
