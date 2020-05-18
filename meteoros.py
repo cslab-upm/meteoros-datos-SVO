@@ -347,7 +347,7 @@ def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_de
             header2.set('TTYPE3',col3T1.split(",")[0],col3T1.split(",")[1])
             header2.set('TUNIT4', 'dB')
             header2.set('TTYPE4',col4T1.split(",")[0],col4T1.split(",")[1])
-            header2.set('DURATION',duracion[i],'duration of the event(ms)')
+            header2.set('DURATION',duracion[i],'Duration of the event(ms)')
             
             header3.set('TTYPE1',col1T2.split(",")[0],col1T2.split(",")[1])
             header3.set('TTYPE2',col2T2.split(",")[0],col2T2.split(",")[1])
@@ -358,7 +358,7 @@ def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_de
             header3.set('TUNIT4', 'dB')
             header3.set('TTYPE5',col5T2.split(",")[0],col5T2.split(",")[1])
             header3.set('TUNIT5', 'dB')
-            header3.set('DURATION',duracion[i],'duration of the event(ms)')
+            header3.set('DURATION',duracion[i],'Duration of the event(ms)')
                 
             hdulist.flush()
             hdulist.close()
