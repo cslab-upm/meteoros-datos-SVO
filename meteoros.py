@@ -248,19 +248,26 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
             t_ini = float(sinRuido[0][0])
             t_fin = float(sinRuido[fin][0])
             dur = round((t_fin - t_ini)*1000)
-            
+            default = round(1.0)
+            date = datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y-%m-%d-%H%M%S%f')
+            date = date[:-4]
+            if(len(t_deteccion) != 0):
+                last = len(t_deteccion) - 1
+                if(date == t_deteccion[last]):
+                    eliminados.append(i)
+                    continue
             if(dur <= 0):
-                eliminados.append(i)
-                continue
+                duracion.append(default)
             else:
                 duracion.append(dur)
             
-            t_deteccion.append(datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y-%m-%d-%H%M%S'))
+            t_deteccion.append(date)
+
             fecha.append(datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y/%m/%d-%H:%M:%S.%f'))
             for l in range(len(sinRuido)):
                 ts = float(sinRuido[l][0])
                 t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
-                t = t[:-3]
+                t = t[:-4]
                 fileTabla1.write(t + ' ' + sinRuido[l][0] + ' ' + sinRuido[l][1] + ' ' + sinRuido[l][2] + '\n')
                 if(len(sinRuido[l]) == 7):
                     fileTabla2.write(t + ' ' + sinRuido[l][0] + ' ' + ' ' + sinRuido[l][4] + ' ' + sinRuido[l][5] + ' ' + sinRuido[l][6] + '\n')
@@ -279,14 +286,13 @@ def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_de
     try:
         os.makedirs(directorioTransformadosFits + flag)    
         #eliminar datos de interferencias
-        i = 0
+        c = 0
         for j in range(len(eliminados)):
-            d = eliminados[j] - i
+            d = eliminados[j] - c
             del archivosscreenshots[d]
             del archivosdat[d]
-            i = i + 1
+            c = c + 1
         for i in range(len(archivosscreenshots)):
-        
             test_input = directorio + "/" + archivosdat[i].replace('.dat','_tabla1.txt')
             table = tb.read(test_input, format='ascii')
             os.remove(test_input)
@@ -297,11 +303,10 @@ def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_de
             
             nombre = archivosdat[i][32:]
             nombreFits = nombre.replace('.dat','')
-            
+
             screenshot_input = dirGuardados + estacion + dirEchoes + diaExtraido + "/screenshots/" + flag + "/" + archivosscreenshots[i]
-            #screenshot_output = directorioTransformadosFits + flag + "/" +  nombreFicheros + nombreFits + '.fits'
+            #screenshot_output_1 = directorioTransformadosFits + flag + "/" +  nombreFicheros + nombreFits + '.fits'
             screenshot_output = directorioTransformadosFits + flag + "/" + estacion + '_' + t_deteccion[i] + '.fits'
-            
             
             #fichero = nombreFicheros + nombreFits + '.fits'
             fichero = estacion + '_' + t_deteccion[i] + '.fits'
@@ -312,7 +317,7 @@ def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_de
             ph = Header(primaryHeaders)
             
             primaryHeaders.remove(c5)
-
+            
             im = Image.open(screenshot_input)
             im = ImageOps.flip(im)
             im.save("temporal.png")
@@ -339,7 +344,7 @@ def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_de
             hdulist = fits.open(screenshot_output, mode='update')
             header2 = hdulist[2].header
             header3 = hdulist[3].header
-            
+           
             header2.set('TTYPE1',col1T1.split(",")[0],col1T1.split(",")[1])
             header2.set('TUNIT2','s')
             header2.set('TTYPE2',col2T1.split(",")[0],col2T1.split(",")[1])
