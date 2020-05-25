@@ -64,7 +64,7 @@ Creación de la base de datos:
 
 Ahora, salga de MySQL (`mysql> exit;`) e importe la estructura de la base de datos (tabla datos_meteoros):
 
-    mysql -u username -p meteorosdb < import_2.sql
+    mysql -u username -p meteorosdb < dump.sql
 
 Para verificar que la base de datos está creada correctamente, visualiza la tabla creada en MySQL:
 
@@ -77,9 +77,9 @@ Y debería aparecer la siguiente tabla:
 | Field    | Type        | Null | Key | Default | Extra |
 |----------|-------------|------|-----|---------|-------|
 | ID       | varchar(30) | NO   | PRI | NULL    |       |
-| FECHA    | varchar(30) | YES  |     | NULL    |       |
-| ESTACION | varchar(30) | YES  |     | NULL    |       |
-| DURACION | int(11)     | YES  |     | NULL    |       |
+| FECHA    | varchar(30) | NO   |     | NULL    |       |
+| ESTACION | varchar(30) | NO   |     | NULL    |       |
+| DURACION | int(11)     | NO   |     | NULL    |       |
 
 ## Archivo de configuración
 
