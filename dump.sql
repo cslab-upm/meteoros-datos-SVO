@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 5.7.30, for Linux (x86_64)
 --
--- Host: localhost    Database: meteoros
+-- Host: localhost    Database: meteorosdb
 -- ------------------------------------------------------
 -- Server version	5.7.30-0ubuntu0.18.04.1
 
@@ -24,9 +24,9 @@ DROP TABLE IF EXISTS `datos_meteoros`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `datos_meteoros` (
   `ID` varchar(30) NOT NULL,
-  `FECHA` varchar(30) DEFAULT NULL,
-  `ESTACION` varchar(30) DEFAULT NULL,
-  `DURACION` int(11) DEFAULT NULL,
+  `DATE` varchar(30) NOT NULL,
+  `STATION` varchar(30) NOT NULL,
+  `DURATION` int(11) NOT NULL,
   PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -40,4 +40,4 @@ CREATE TABLE `datos_meteoros` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-05-25 13:49:12
+-- Dump completed on 2020-05-25 14:14:40
