@@ -51,6 +51,9 @@ try:
     permisos = config.get('Ficheros', 'permisos')
     DescripcionVOTable = config.get('Ficheros', 'DescripcionVOTable')
     
+    username = config.get('MySQL','username')
+    password = config.get('MySQL','password')
+
     col1T1 = config.get('ColumnasTablas', 'col1T1')
     col2T1 = config.get('ColumnasTablas', 'col2T1')
     col3T1 = config.get('ColumnasTablas', 'col3T1')
@@ -248,7 +251,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
             t_ini = float(sinRuido[0][0])
             t_fin = float(sinRuido[fin][0])
             dur = round((t_fin - t_ini)*1000)
-            default = round(1.0)
+            default = round(100.0)
             date = datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y-%m-%d-%H%M%S%f')
             date = date[:-4]
             if(len(t_deteccion) != 0):
@@ -264,6 +267,16 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
             t_deteccion.append(date)
 
             fecha.append(datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y/%m/%d-%H:%M:%S.%f'))
+	    #introducir muestra de ruido para visualizar mejor la curva de luz
+            longitud = len(sinRuido)
+            noise = str(sinRuido[longitud-1][4])
+            for l in range(6):
+                if(l != 0):
+                    ts = float(t_ini - 0.5 + 0.1*l)
+                    t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
+                    t = t[:-4]
+                    fileTabla2.write(str(t) + ' ' + str(ts) + ' ' + str(noise) + ' ' + str(noise) + ' ' + '0' + '\n')
+            #introducir los datos
             for l in range(len(sinRuido)):
                 ts = float(sinRuido[l][0])
                 t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
@@ -271,6 +284,13 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
                 fileTabla1.write(t + ' ' + sinRuido[l][0] + ' ' + sinRuido[l][1] + ' ' + sinRuido[l][2] + '\n')
                 if(len(sinRuido[l]) == 7):
                     fileTabla2.write(t + ' ' + sinRuido[l][0] + ' ' + ' ' + sinRuido[l][4] + ' ' + sinRuido[l][5] + ' ' + sinRuido[l][6] + '\n')
+	    #introducir muestra de ruido al final
+            for l in range(6):
+                if(l != 0):
+                    ts = float(t_fin + 0.1*l)
+                    t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
+                    t = t[:-4]
+                    fileTabla2.write(str(t) + ' ' + str(ts) + ' ' + str(noise) + ' ' + str(noise) + ' ' + '0' + '\n')
             fileTabla1.close()
             fileTabla2.close()  
     except:
@@ -418,7 +438,7 @@ def enlacesVOTable(flag):
 
 
 # Funcion que convierte los fits a VOTable
-def conversionVOTable(archivosdat,flag,t_deteccion):
+def conversionVOTable(archivosdat,flag,t_deteccioni,duracion):
     try:
         os.makedirs(directorioTransformadosVOTable + flag)
         for i in range(len(archivosdat)):
@@ -434,7 +454,7 @@ def conversionVOTable(archivosdat,flag,t_deteccion):
             votable_output2 =  directorioTransformadosVOTable + flag + "/" + estacion + '_' + t_deteccion[i] + '_2.vot'
           
             #fichero = nombreFicheros + nombreFits + '.fits'
-            fichero = estacion + t_deteccion[i]
+            fichero = estacion + '_' + t_deteccion[i]
             
             t = tb.read(fichero_fits,2)
             t2 = tb.read(fichero_fits,3)
@@ -456,12 +476,17 @@ def conversionVOTable(archivosdat,flag,t_deteccion):
             resource.tables.append(tabla2)
             
             param = Param(votable,name="TITLE", datatype="char", arraysize=str(len(fichero)), value=fichero)
-            param.description = "name of the file"
+            param.description = "Name of the file"
             resource.params.append(param)
             
             param = Param(votable,name="DATE", datatype="char", arraysize=str(len(diaExtraido)), value=diaExtraido)
-            param.description = "date of its detection"
+            param.description = "Date of its detection (YYYY-MM-DD)"
             resource.params.append(param)
+
+            param = Param(votable, name="DURATION", datatype="int",value=duracion[i],unit="ms")
+            param.description = "Duration of the event"
+            resource.params.append(param)
+
             for n in range(len(totalValores)):
                 flag_u = 0
                 index = totalDescripciones[n].find('(')
@@ -577,11 +602,11 @@ def moverArchivosVOTable(ficherosFITS,flag):
 def insertarDatos(meteoro_id,fecha,duracion):
     try:
         #conexion con la DDBB
-        cnx = mysql.connector.connect(user='user',password='password',host='localhost',database='meteoros')
+        cnx = mysql.connector.connect(user=username,password=password,host='localhost',database='meteorosdb')
         cursor = cnx.cursor()
 
         for l in range(len(fecha)):
-            add_meteoro = ("INSERT INTO datos_meteoros " "(ID,FECHA,ESTACION,DURACION) " "VALUES (%s, %s, %s, %s)")
+            add_meteoro = ("INSERT INTO datos_meteoros " "(ID,DATE,STATION,DURATION) " "VALUES (%s, %s, %s, %s)")
             data_meteoro = (meteoro_id[l],fecha[l],estacion,duracion[l])
             cursor.execute(add_meteoro,data_meteoro)
             cnx.commit()
@@ -652,7 +677,7 @@ for i in ["overdense","fakes","underdense"]:
     moverArchivosFITS(ficherosFITS,i)
     flogs.write("LOG: Ficheros FITS " + i + " comprimidos y movidos con exito\n")
     enlacesVOTable(i)
-    conversionVOTable(array_dats,i,t_deteccion)
+    conversionVOTable(array_dats,i,t_deteccion,duration)
     flogs.write("LOG: Conversion de fits a VOTable de los " + i + " realizada con exito\n")
     moverArchivosVOTable(ficherosFITS,i)
     flogs.write("LOG: Ficheros VOTable de los " + i + " comprimidos y movidos con exito\n")
