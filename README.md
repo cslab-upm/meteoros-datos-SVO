@@ -77,9 +77,9 @@ Y debería aparecer la siguiente tabla:
 | Field    | Type        | Null | Key | Default | Extra |
 |----------|-------------|------|-----|---------|-------|
 | ID       | varchar(30) | NO   | PRI | NULL    |       |
-| FECHA    | varchar(30) | YES  |     | NULL    |       |
-| ESTACION | varchar(30) | YES  |     | NULL    |       |
-| DURACION | int(11)     | YES  |     | NULL    |       |
+| FECHA    | varchar(30) | NO   |     | NULL    |       |
+| ESTACION | varchar(30) | NO   |     | NULL    |       |
+| DURACION | int(11)     | NO   |     | NULL    |       |
 
 ## Archivo de configuración
 
