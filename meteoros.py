@@ -163,22 +163,26 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
                 if(final):
                     array_lineas.append(final)
 
+            #para cada instante toma 968 muestras
             if(flag == "overdense" or flag == "fakes"): 
                 t = 967
+                #comprueba el umbral de subida para el inicio de la señal
                 while t < len(array_lineas):
-                    if(float(array_lineas[t][6]) > float(umbralBajada)):
+                    if(float(array_lineas[t][6]) > float(umbralSubida)):
                         tamIn = t
                         break
                     t += 968
             
                 d = tamIn+968
+
                 while d < len(array_lineas):
                     c = 0
                     resultado = 0
                     if(float(array_lineas[d][6]) < float(umbralBajada)):
                         k = d+968
+                        #comprueba si la señal vuelve a subir durante 1s
                         while c < duracionEco and k < len(array_lineas):
-                            if(float(array_lineas[k][6]) > float(umbralBajada)):
+                            if(float(array_lineas[k][6]) > float(umbralSubida)):
                                 resultado = -1
                                 break
                             c += 1
@@ -187,12 +191,13 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
                             tamFin = d
                             break
                     d += 968
+            #para eventos underdense
             else:
             
                 t = 967
                 resultado2 = 0
                 while t < len(array_lineas):
-                    if(float(array_lineas[t][6]) > float(umbralBajada)):
+                    if(float(array_lineas[t][6]) > float(umbralSubida)):
                         tamIn = t
                         if(t < len(array_lineas)-1000):
                             resultado2 = -1
@@ -209,6 +214,9 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
                         break
                     d += 968
             sinRuido = array_lineas[tamIn-967:tamFin-967]
+            if(resultado2 == 0):
+                eliminados.append(i)
+                continue
            # 
            # #deteccion interferencias
            # for length in range(len(sinRuido)):
@@ -267,9 +275,9 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
             t_deteccion.append(date)
 
             fecha.append(datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y/%m/%d-%H:%M:%S.%f'))
-	    #introducir muestra de ruido para visualizar mejor la curva de luz
+	        #introducir muestra de ruido para visualizar mejor la curva de luz
             longitud = len(sinRuido)
-            noise = str(sinRuido[longitud-1][4])
+            noise = str(sinRuido[longitud-1][5])
             for l in range(6):
                 if(l != 0):
                     ts = float(t_ini - 0.5 + 0.1*l)
@@ -284,7 +292,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
                 fileTabla1.write(t + ' ' + sinRuido[l][0] + ' ' + sinRuido[l][1] + ' ' + sinRuido[l][2] + '\n')
                 if(len(sinRuido[l]) == 7):
                     fileTabla2.write(t + ' ' + sinRuido[l][0] + ' ' + ' ' + sinRuido[l][4] + ' ' + sinRuido[l][5] + ' ' + sinRuido[l][6] + '\n')
-	    #introducir muestra de ruido al final
+	        #introducir muestra de ruido al final
             for l in range(6):
                 if(l != 0):
                     ts = float(t_fin + 0.1*l)
@@ -305,7 +313,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
 def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_deteccion):
     try:
         os.makedirs(directorioTransformadosFits + flag)    
-        #eliminar datos de interferencias
+        #eliminar datos anómalos
         c = 0
         for j in range(len(eliminados)):
             d = eliminados[j] - c
@@ -599,7 +607,7 @@ def moverArchivosVOTable(ficherosFITS,flag):
         sys.exit(1)      
 
 # Funcion que inserta los datos de los meteoros a la DDBB
-def insertarDatos(meteoro_id,fecha,duracion):
+def insertarDatos(meteoro_id,fecha,duracion,flag):
     try:
         #conexion con la DDBB
         cnx = mysql.connector.connect(user=username,password=password,host='localhost',database='meteorosdb')
@@ -616,8 +624,17 @@ def insertarDatos(meteoro_id,fecha,duracion):
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
             print("Something is wrong with your user name or password")
+            flogs.write("LOG: ERROR al insertar los datos de " + flag + " a la BBDD"+"\n")
+            flogs.close()
+            shutil.rmtree(directorio)
+            sys.exit(1)
+
         elif err.errno == errorcode.ER_BAD_DB_ERROR:
             print("Database does not exist")
+            flogs.write("LOG: ERROR al insertar los datos de " + flag + " a la BBDD" + "\n")
+            flogs.close()
+            shutil.rmtree(directorio)
+            sys.exit(1)
         else:
             print(err)
     else:
@@ -681,7 +698,8 @@ for i in ["overdense","fakes","underdense"]:
     flogs.write("LOG: Conversion de fits a VOTable de los " + i + " realizada con exito\n")
     moverArchivosVOTable(ficherosFITS,i)
     flogs.write("LOG: Ficheros VOTable de los " + i + " comprimidos y movidos con exito\n")
-    insertarDatos(t_deteccion,fecha,duration)
+    insertarDatos(t_deteccion,fecha,duration,i)
+    flogs.write("LOG: Datos " + i + " insertados a la BBDD con exito\n")
 
 shutil.rmtree(directorio)
 flogs.close()
