@@ -111,7 +111,7 @@ try:
     c1 = fits.Card('EXTNAME', 'PrimaryHDU', 'name of the extension')
     c2 = fits.Card('EXTNAME', 'ImageHDU', 'name of the extension')
     c3 = fits.Card('EXTNAME', 'SpectrogramHDU', 'name of the extension')
-    c4 = fits.Card('EXTNAME', 'DatasHDU', 'name of the extension')
+    c4 = fits.Card('EXTNAME', 'LightCurveHDU', 'name of the extension')
     c5 = fits.Card('DATE', diaExtraido, 'date of its detection (YYYY-MM-DD)')
     
     primaryHeaders = [c1,c5]
@@ -258,7 +258,9 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
             
             t_deteccion.append(date)
 
-            fecha.append(datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y/%m/%d-%H:%M:%S.%f'))
+            date_sql = datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y/%m/%d-%H:%M:%S.%f')
+            date_sql = date_sql[:-4]
+            fecha.append(date_sql)
 	        #introducir muestra de ruido para visualizar mejor la curva de luz
             longitud = len(array_lineas)
             peak = str(array_lineas[longitud-1][5])
