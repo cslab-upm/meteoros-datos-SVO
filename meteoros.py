@@ -149,8 +149,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
     try:
         for i in range(len(archivos)):
             array_lineas = []
-            media = []
-            maximo = []
+            diferencia = []
             interf = 1 
             f = open(dirGuardados + estacion + dirEchoes + diaExtraido + "/gnuplot/specs/" + flag + "/" + archivos[i] , "r")
             leido = f.readlines()
@@ -217,41 +216,26 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
             if(resultado2 == 0):
                 eliminados.append(i)
                 continue
-           # 
-           # #deteccion interferencias
+
+           # deteccion interferencias
            # for length in range(len(sinRuido)):
            #     if(len(sinRuido[length]) == 7):
-           #         media.append(sinRuido[length][4])
-           #         maximo.append(sinRuido[length][5])
-           # constante = 1     
-           # variacion = 0
-           # #comprobar si el maximo se mantiene constante
-           # for cont in range(len(maximo)):
+           #         diferencia.append(sinRuido[length][6])
+           # constante = 1
+           # comprobar si la diferencia se mantiene constante
+           # for cont in range(len(diferencia)):
            #     if(cont != 0):
-           #         variacion = abs(float(maximo[cont]) - float(maximo[cont - 1]))
-           #     if(variacion > float(2) or len(maximo) == 1):
+           #         variacion = abs(float(diferencia[cont]) - float(diferencia[cont - 1]))
+           #     if(variacion > float(2) or len(diferencia) == 1):
            #         constante = 0
            #         break
-           # #calcular la media global
-           # media_global = float(0)
-           # for k in range(len(media)):
-           #     media_global = media_global + float(media[k])
-           # media_global /= float(len(media))
-           # #comprobar que la dif entre media global y los maximos no superan el umbral de variacion(15dB)
-           # for c in range(len(maximo)):
-           #     variacion = float(maximo[c]) - float(media_global)
-           #     if(variacion > float(15) or constante == 0):
-           #         interf = 0
-           #         print(variacion)
-           #         print("No es interferencia")
-           #         break
-           # print(constante)
-           # if(interf == 1):
-           #     eliminados.append(i)
-           #     print(media_global)
-           #     print(maximo)
+           # if(constante == 0):
+           #    print("No es interferencia")
+           # else:
+           #    eliminados.append(i)
            #     print("Interferencia detectada " + archivos[i])
            #     continue
+
             fileTabla1 = open(directorio + "/" + archivos[i].replace('.dat','_tabla1.txt'),"w")
             fileTabla2 = open(directorio + "/" + archivos[i].replace('.dat','_tabla2.txt'),"w")
             
@@ -276,14 +260,15 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
 
             fecha.append(datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y/%m/%d-%H:%M:%S.%f'))
 	        #introducir muestra de ruido para visualizar mejor la curva de luz
-            longitud = len(sinRuido)
-            noise = str(sinRuido[longitud-1][5])
+            longitud = len(array_lineas)
+            peak = str(array_lineas[longitud-1][5])
+            average = str(array_lineas[longitud-1][4])
             for l in range(6):
                 if(l != 0):
                     ts = float(t_ini - 0.5 + 0.1*l)
                     t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
                     t = t[:-4]
-                    fileTabla2.write(str(t) + ' ' + str(ts) + ' ' + str(noise) + ' ' + str(noise) + ' ' + '0' + '\n')
+                    fileTabla2.write(str(t) + ' ' + str(ts) + ' ' + str(average) + ' ' + str(peak) + ' ' + '0' + '\n')
             #introducir los datos
             for l in range(len(sinRuido)):
                 ts = float(sinRuido[l][0])
@@ -298,7 +283,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
                     ts = float(t_fin + 0.1*l)
                     t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
                     t = t[:-4]
-                    fileTabla2.write(str(t) + ' ' + str(ts) + ' ' + str(noise) + ' ' + str(noise) + ' ' + '0' + '\n')
+                    fileTabla2.write(str(t) + ' ' + str(ts) + ' ' + str(average) + ' ' + str(peak) + ' ' + '0' + '\n')
             fileTabla1.close()
             fileTabla2.close()  
     except:
