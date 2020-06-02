@@ -161,8 +161,8 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
                 final = [p for p in lineas if p ]
                 if(final):
                     array_lineas.append(final)
-
             #para cada instante toma 968 muestras
+            resultado2 = -1
             if(flag == "overdense" or flag == "fakes"): 
                 t = 967
                 #comprueba el umbral de subida para el inicio de la señal
@@ -599,10 +599,12 @@ def insertarDatos(meteoro_id,fecha,duracion,flag):
         #conexion con la DDBB
         cnx = mysql.connector.connect(user=username,password=password,host='localhost',database='meteorosdb')
         cursor = cnx.cursor()
-
+        if(len(meteoro_id)!=0):
+            day = meteoro_id[0][0:10]
         for l in range(len(fecha)):
-            add_meteoro = ("INSERT INTO datos_meteoros " "(ID,DATE,STATION,DURATION) " "VALUES (%s, %s, %s, %s)")
-            data_meteoro = (meteoro_id[l],fecha[l],estacion,duracion[l])
+            m_id = 'fuenlabrada_' + meteoro_id[l]
+            add_meteoro = ("INSERT INTO datos_meteoros " "(ID,DATE,STATION,DURATION,DAY,TYPE) " "VALUES (%s, %s, %s, %s, %s, %s)")
+            data_meteoro = (m_id,fecha[l],estacion,duracion[l],day,flag)
             cursor.execute(add_meteoro,data_meteoro)
             cnx.commit()
         cursor.close()
