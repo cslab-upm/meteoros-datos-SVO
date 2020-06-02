@@ -76,10 +76,12 @@ Y debería aparecer la siguiente tabla:
 
 | Field    | Type        | Null | Key | Default | Extra |
 |----------|-------------|------|-----|---------|-------|
-| ID       | varchar(30) | NO   | PRI | NULL    |       |
-| FECHA    | varchar(30) | NO   |     | NULL    |       |
-| ESTACION | varchar(30) | NO   |     | NULL    |       |
-| DURACION | int(11)     | NO   |     | NULL    |       |
+| ID       | varchar(50) | NO   | PRI | NULL    |       |
+| DATE     | varchar(50) | NO   |     | NULL    |       |
+| STATION  | varchar(50) | NO   |     | NULL    |       |
+| DURATION | int(11)     | NO   |     | NULL    |       |
+| DAY      | varchar(50) | NO   |     | NULL    |       |
+| TYPE     | varchar(50) | NO   |     | NULL    |       |
 
 ## Propiedades configurables
 
