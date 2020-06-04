@@ -20,6 +20,9 @@ import gzip
 import warnings
 import mysql.connector
 from mysql.connector import errorcode
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 warnings.filterwarnings("ignore",module='astropy.io.votable.tree')
 
 #########################################
@@ -41,8 +44,10 @@ try:
     
     dirFITS = config.get('Directorios', 'dirFITS')
     dirVOTable = config.get('Directorios', 'dirVOTable')
+    dirPlots = config.get('Directorios', 'dirPlots')
     directorioTransformadosFits = directorio + dirFITS
     directorioTransformadosVOTable = directorio + dirVOTable
+    directorioPlots = directorio + dirPlots
     dirEchoes = config.get('Directorios', 'dirEchoes')
     dirDatosAbiertos = config.get('Directorios', 'dirDatosAbiertos')
     dirGuardados = config.get('Directorios', 'dirGuardados')
@@ -145,11 +150,17 @@ except:
     sys.exit(1)
 
 # Funcion que lee los datos del dat y los escribe en otro fichero 
-def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
+def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_list):
     try:
+        os.makedirs(directorioPlots + flag)
         for i in range(len(archivos)):
             array_lineas = []
             diferencia = []
+            lc_peak = []
+            lc_time = []
+            spec_time = []
+            spec_power = []
+            spec_frec = []
             interf = 1 
             f = open(dirGuardados + estacion + dirEchoes + diaExtraido + "/gnuplot/specs/" + flag + "/" + archivos[i] , "r")
             leido = f.readlines()
@@ -271,14 +282,21 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
                     t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
                     t = t[:-4]
                     fileTabla2.write(str(t) + ' ' + str(ts) + ' ' + str(average) + ' ' + str(peak) + ' ' + '0' + '\n')
+                    lc_peak.append(float(peak))
+                    lc_time.append(float(ts))
             #introducir los datos
             for l in range(len(sinRuido)):
                 ts = float(sinRuido[l][0])
                 t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
                 t = t[:-4]
                 fileTabla1.write(t + ' ' + sinRuido[l][0] + ' ' + sinRuido[l][1] + ' ' + sinRuido[l][2] + '\n')
+                spec_time.append(float(ts))
+                spec_frec.append(float(sinRuido[l][1]))
+                spec_power.append(float(sinRuido[l][2]))
                 if(len(sinRuido[l]) == 7):
                     fileTabla2.write(t + ' ' + sinRuido[l][0] + ' ' + ' ' + sinRuido[l][4] + ' ' + sinRuido[l][5] + ' ' + sinRuido[l][6] + '\n')
+                    lc_peak.append(float(sinRuido[l][5]))
+                    lc_time.append(float(ts))
 	        #introducir muestra de ruido al final
             for l in range(6):
                 if(l != 0):
@@ -286,10 +304,41 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
                     t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
                     t = t[:-4]
                     fileTabla2.write(str(t) + ' ' + str(ts) + ' ' + str(average) + ' ' + str(peak) + ' ' + '0' + '\n')
+                    lc_peak.append(float(peak))
+                    lc_time.append(float(ts))
+
+            #Fuente
+            plt.rcParams["font.family"] = "serif"
+            #plot de la curva de luz
+            plt.plot(lc_time,lc_peak)
+            plt.title('Light Curve')
+            plt.xlabel('Epoch Time (s)')
+            plt.ylabel('Peak power (dB)')
+            lc = directorioPlots + flag  + '/' + estacion + '_' + date + '.lc.png'
+            plt.savefig(lc)
+            lc_list.append(estacion + '_' + date + '.lc.png')
+            plt.close()
+            #plot del espectograma
+            plt.figure(figsize=(14,12))
+            x = np.array(spec_frec)
+            y = np.array(spec_time)
+            z = np.array(spec_power)
+            sp = pd.DataFrame.from_dict(np.array([x,y,z]).T)
+            sp.columns = ['frec','time','power']
+            sp['power'] = pd.to_numeric(sp['power'])
+            sp_pv = sp.pivot('time','frec','power')
+            sns.heatmap(sp_pv,cbar_kws={'label':'Power (dB)'})
+            plt.title('Spectrogram')
+            plt.xlabel('Frecuency (Hz)')
+            plt.ylabel('Epoch Time (s)')
+            spec = directorioPlots + flag + '/' + estacion + '_' + date + '.sp.png'
+            plt.savefig(spec)
+            spec_list.append(estacion + '_' + date + '.sp.png')
+            plt.close()
+
             fileTabla1.close()
-            fileTabla2.close()  
+            fileTabla2.close()
     except:
-        
         flogs.write("LOG: ERROR en la lectura de los .dat o en la eliminacion del ruido en los " + flag + "\n")
         flogs.close()
         shutil.rmtree(directorio)
@@ -299,7 +348,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha):
 # Funcion que convierte los archivos a fits
 def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_deteccion):
     try:
-        os.makedirs(directorioTransformadosFits + flag)    
+        os.makedirs(directorioTransformadosFits + flag)
         #eliminar datos anómalos
         c = 0
         for j in range(len(eliminados)):
@@ -320,7 +369,6 @@ def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_de
             nombreFits = nombre.replace('.dat','')
 
             screenshot_input = dirGuardados + estacion + dirEchoes + diaExtraido + "/screenshots/" + flag + "/" + archivosscreenshots[i]
-            #screenshot_output_1 = directorioTransformadosFits + flag + "/" +  nombreFicheros + nombreFits + '.fits'
             screenshot_output = directorioTransformadosFits + flag + "/" + estacion + '_' + t_deteccion[i] + '.fits'
             
             #fichero = nombreFicheros + nombreFits + '.fits'
@@ -440,15 +488,11 @@ def conversionVOTable(archivosdat,flag,t_deteccioni,duracion):
             nombre = archivosdat[i][32:]
             nombreFits = nombre.replace('.dat','')
             nombreVOTable = nombre.replace('.dat','')
-            
-            #fichero_fits = directorioTransformadosFits + flag + "/" + nombreFicheros + nombreFits + '.fits'
+
             fichero_fits = directorioTransformadosFits + flag + "/" + estacion + '_' + t_deteccion[i] + '.fits'
-            #votable_output =  directorioTransformadosVOTable + flag + "/" + nombreFicheros + nombreVOTable + '.vot'
             votable_output =  directorioTransformadosVOTable + flag + "/" + estacion + '_'+ t_deteccion[i] + '.vot'
-            #votable_output2 =  directorioTransformadosVOTable + flag + "/" + nombreFicheros + nombreVOTable + '_2.vot'
             votable_output2 =  directorioTransformadosVOTable + flag + "/" + estacion + '_' + t_deteccion[i] + '_2.vot'
-          
-            #fichero = nombreFicheros + nombreFits + '.fits'
+
             fichero = estacion + '_' + t_deteccion[i]
             
             t = tb.read(fichero_fits,2)
@@ -591,9 +635,29 @@ def moverArchivosVOTable(ficherosFITS,flag):
         flogs.write("LOG: ERROR al mover los VOTable de los " + flag + "\n")
         flogs.close()
         shutil.rmtree(directorio)
-        sys.exit(1)      
+        sys.exit(1)
 
-# Funcion que inserta los datos de los meteoros a la DDBB
+        # Funcion que sube los ficheros VOTable via FTP
+
+def moverArchivosPlot(lc_list, spec_list, flag):
+    try:
+        actual = os.getcwd()
+        os.chdir(directorioPlots + flag)
+        for n in range(len(lc_list)):
+            os.chmod(lc_list[n], int(permisos, 8))
+            shutil.move(lc_list[n],
+                        dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + "/" + lc_list[n])
+            os.chmod(spec_list[n], int(permisos, 8))
+            shutil.move(spec_list[n],
+                        dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + "/" + spec_list[n])
+        os.chdir(actual)
+    except:
+        flogs.write("LOG: ERROR al mover los Plots de los " + flag + "\n")
+        flogs.close()
+        shutil.rmtree(directorio)
+        sys.exit(1)
+
+        # Funcion que inserta los datos de los meteoros a la DDBB
 def insertarDatos(meteoro_id,fecha,duracion,flag):
     try:
         #conexion con la DDBB
@@ -658,6 +722,8 @@ for i in ["overdense","fakes","underdense"]:
     eliminados = []
     t_deteccion = []
     fecha = []
+    spec_list = []
+    lc_list = []
     try:
         dirs = os.listdir(dirGuardados + estacion + dirEchoes + diaExtraido + "/screenshots/" + i)
         for file in dirs:
@@ -676,7 +742,7 @@ for i in ["overdense","fakes","underdense"]:
 
     print("LOG: Va a comenzar la conversion de los archivos " + i)
     flogs.write("LOG: Conversion de los archivos " + i +  ":\n")
-    manejodats(array_dats,i,duration,eliminados,t_deteccion,fecha)
+    manejodats(array_dats,i,duration,eliminados,t_deteccion,fecha,lc_list,spec_list)
     flogs.write("LOG: Datos leidos de los .dat y ruido eliminado de los " + i + " con exito\n")
     conversionfits(array_screenshots,array_dats,i,duration,eliminados,t_deteccion)
     flogs.write("LOG: Conversion de los archivos " + i + " a FITS realizada con exito\n")
@@ -687,6 +753,8 @@ for i in ["overdense","fakes","underdense"]:
     flogs.write("LOG: Conversion de fits a VOTable de los " + i + " realizada con exito\n")
     moverArchivosVOTable(ficherosFITS,i)
     flogs.write("LOG: Ficheros VOTable de los " + i + " comprimidos y movidos con exito\n")
+    moverArchivosPlot(lc_list, spec_list, i)
+    flogs.write("LOG: Ficheros Plot movidos con exito")
     insertarDatos(t_deteccion,fecha,duration,i)
     flogs.write("LOG: Datos " + i + " insertados a la BBDD con exito\n")
 
