@@ -272,6 +272,11 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             date_sql = datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y/%m/%d-%H:%M:%S.%f')
             date_sql = date_sql[:-4]
             fecha.append(date_sql)
+
+            #generar archivos csv
+            sp_csv = open(directorio + "/" + estacion + '_' + date + '.1.csv',"w")
+            lc_csv = open(directorio + "/" + estacion + '_' + date + '.2.csv',"w")
+
 	        #introducir muestra de ruido para visualizar mejor la curva de luz
             longitud = len(array_lineas)
             peak = str(array_lineas[longitud-1][5])
@@ -282,6 +287,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                     t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
                     t = t[:-4]
                     fileTabla2.write(str(t) + ' ' + str(ts) + ' ' + str(average) + ' ' + str(peak) + ' ' + '0' + '\n')
+                    lc_csv.write(str(t) + ',' + str(ts) + ',' + str(average) + ',' + str(peak) + ',' + '0' + '\n')
                     lc_peak.append(float(peak))
                     lc_time.append(float(ts))
             #introducir los datos
@@ -290,11 +296,13 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                 t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
                 t = t[:-4]
                 fileTabla1.write(t + ' ' + sinRuido[l][0] + ' ' + sinRuido[l][1] + ' ' + sinRuido[l][2] + '\n')
+                sp_csv.write(t + ',' + sinRuido[l][0] + ',' + sinRuido[l][1] + ',' + sinRuido[l][2] + '\n')
                 spec_time.append(float(ts))
                 spec_frec.append(float(sinRuido[l][1]))
                 spec_power.append(float(sinRuido[l][2]))
                 if(len(sinRuido[l]) == 7):
                     fileTabla2.write(t + ' ' + sinRuido[l][0] + ' ' + ' ' + sinRuido[l][4] + ' ' + sinRuido[l][5] + ' ' + sinRuido[l][6] + '\n')
+                    lc_csv.write(t + ',' + sinRuido[l][0] + ',' + sinRuido[l][4] + ',' + sinRuido[l][5] + ',' + sinRuido[l][6] + '\n')
                     lc_peak.append(float(sinRuido[l][5]))
                     lc_time.append(float(ts))
 	        #introducir muestra de ruido al final
@@ -304,6 +312,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                     t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
                     t = t[:-4]
                     fileTabla2.write(str(t) + ' ' + str(ts) + ' ' + str(average) + ' ' + str(peak) + ' ' + '0' + '\n')
+                    lc_csv.write(str(t) + ',' + str(ts) + ',' + str(average) + ',' + str(peak) + ',' + '0' + '\n')
                     lc_peak.append(float(peak))
                     lc_time.append(float(ts))
 
@@ -336,6 +345,8 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             spec_list.append(estacion + '_' + date + '.sp.png')
             plt.close()
 
+            lc_csv.close()
+            sp_csv.close()
             fileTabla1.close()
             fileTabla2.close()
     except:
@@ -449,13 +460,23 @@ def moverArchivosFITS(ficherosFITS,flag):
         if(flag == "overdense"):
             os.mkdir(diaExtraido)
             os.chmod(diaExtraido,int(permisos,8))
+
         os.chdir(diaExtraido)
         os.mkdir(flag)
         os.chmod(flag,int(permisos,8))
+        os.chdir(flag)
+        os.mkdir('FITS')
+        os.chmod('FITS', int(permisos, 8))
+        os.mkdir('VOTable')
+        os.chmod('VOTable', int(permisos, 8))
+        os.mkdir('Plots')
+        os.chmod('Plots', int(permisos, 8))
+        os.mkdir('ASCII')
+        os.chmod('ASCII', int(permisos, 8))
         os.chdir(actual + directorioTransformadosFits.replace(".","") + flag)
         for n in range(len(ficherosFITS)):
             os.chmod(ficherosFITS[n],int(permisos,8))
-            shutil.move(ficherosFITS[n], dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag +"/" + ficherosFITS[n])
+            shutil.move(ficherosFITS[n], dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag +"/" + 'FITS/' + ficherosFITS[n])
         os.chdir(actual)
     except:
         flogs.write("LOG: ERROR al mover los FITS de los " + flag + "\n")
@@ -484,137 +505,144 @@ def enlacesVOTable(flag):
 def conversionVOTable(archivosdat,flag,t_deteccioni,duracion):
     try:
         os.makedirs(directorioTransformadosVOTable + flag)
+
         for i in range(len(archivosdat)):
             nombre = archivosdat[i][32:]
-            nombreFits = nombre.replace('.dat','')
-            nombreVOTable = nombre.replace('.dat','')
+            nombreFits = nombre.replace('.dat', '')
+            nombreVOTable = nombre.replace('.dat', '')
+            for cont in ['1','2']:
+                fichero_fits = directorioTransformadosFits + flag + "/" + estacion + '_' + t_deteccion[i] + '.fits'
+                votable_output =  directorioTransformadosVOTable + flag + "/" + estacion + '_'+ t_deteccion[i] + '.' + cont +  '.vot'
+                votable_output2 =  directorioTransformadosVOTable + flag + "/" + estacion + '_' + t_deteccion[i] + '.' + cont + '_2.vot'
 
-            fichero_fits = directorioTransformadosFits + flag + "/" + estacion + '_' + t_deteccion[i] + '.fits'
-            votable_output =  directorioTransformadosVOTable + flag + "/" + estacion + '_'+ t_deteccion[i] + '.vot'
-            votable_output2 =  directorioTransformadosVOTable + flag + "/" + estacion + '_' + t_deteccion[i] + '_2.vot'
+                fichero = estacion + '_' + t_deteccion[i]
 
-            fichero = estacion + '_' + t_deteccion[i]
-            
-            t = tb.read(fichero_fits,2)
-            t2 = tb.read(fichero_fits,3)
-            
-            os.remove(fichero_fits)
-            votable = from_table(t[0:1])
-            votable2 = from_table(t2[0:1])
+                t = tb.read(fichero_fits,2)
+                t2 = tb.read(fichero_fits,3)
 
-            writeto(votable,  votable_output)
-            writeto(votable2,  votable_output2)
-            
-            tabla2 = parse_single_table(votable_output2)
-            os.remove(votable_output2)
-            
-            votable = parse(votable_output)
+                if(cont == '2'):
+                    os.remove(fichero_fits)
+                votable = from_table(t[0:1])
+                votable2 = from_table(t2[0:1])
 
-            resource = votable.resources[0]
-            resource.description = "Fichero " + fichero + " " + DescripcionVOTable
-            resource.tables.append(tabla2)
-            
-            param = Param(votable,name="TITLE", datatype="char", arraysize=str(len(fichero)), value=fichero)
-            param.description = "Name of the file"
-            resource.params.append(param)
-            
-            param = Param(votable,name="DATE", datatype="char", arraysize=str(len(diaExtraido)), value=diaExtraido)
-            param.description = "Date of its detection (YYYY-MM-DD)"
-            resource.params.append(param)
+                writeto(votable,  votable_output)
+                writeto(votable2,  votable_output2)
 
-            param = Param(votable, name="DURATION", datatype="int",value=duracion[i],unit="ms")
-            param.description = "Duration of the event"
-            resource.params.append(param)
+                tabla2 = parse_single_table(votable_output2)
+                os.remove(votable_output2)
 
-            for n in range(len(totalValores)):
-                flag_u = 0
-                index = totalDescripciones[n].find('(')
-                if(index != -1):
-                    if(n == 41 or n == 44 or n== 45):
-                        flag_u = 0
-                    else:
-                        unidad = totalDescripciones[n].split('(',1)[1].split(')')[0]
-                        flag_u = 1
-                if(totalValores[n].isdigit() or (totalValores[n].startswith('-') and totalValores[n][1:].isdigit())):
-                    if(flag_u == 1):
-                        param = Param(votable,name=totalCabeceras[n],datatype='int',value=totalValores[n],unit=unidad)
-                    else:
-                        param = Param(votable,name=totalCabeceras[n], datatype="int",value=totalValores[n])
-                    param.description = totalDescripciones[n]
-                    resource.params.append(param)
-                elif(totalValores[n] == "True" or totalValores[n] == "False"):
-                    param = Param(votable,name=totalCabeceras[n], datatype="boolean",value=totalValores[n])
-                    param.description = totalDescripciones[n]
-                    resource.params.append(param)
-                else:
-                    try:
-                        if(float(totalValores[n])):
-                            if(flag_u == 1):
-                                param = Param(votable,name=totalCabeceras[n],datatype='float',value=totalValores[n],unit=unidad)
-                            else:
-                                param = Param(votable,name=totalCabeceras[n], datatype="float",value=totalValores[n])
-                            param.description = totalDescripciones[n]
-                            resource.params.append(param)
-                    except:
-                        if(totalCabeceras[n][0:7] == "COMMENT" or totalCabeceras[n][0:7] == "HISTORY"):
-                            info = Info(name=totalCabeceras[n][0:7], value=totalValores[n])
-                            resource.infos.append(info)
+                votable = parse(votable_output)
+
+                resource = votable.resources[0]
+                resource.description = "File " + fichero + " " + DescripcionVOTable
+                resource.tables.append(tabla2)
+
+                param = Param(votable,name="TITLE", datatype="char", arraysize=str(len(fichero)), value=fichero)
+                param.description = "Name of the file"
+                resource.params.append(param)
+
+                param = Param(votable,name="DATE", datatype="char", arraysize=str(len(diaExtraido)), value=diaExtraido)
+                param.description = "Date of its detection (YYYY-MM-DD)"
+                resource.params.append(param)
+
+                param = Param(votable, name="DURATION", datatype="int",value=duracion[i],unit="ms")
+                param.description = "Duration of the event"
+                resource.params.append(param)
+
+                for n in range(len(totalValores)):
+                    flag_u = 0
+                    index = totalDescripciones[n].find('(')
+                    if(index != -1):
+                        if(n == 41 or n == 44 or n== 45):
+                            flag_u = 0
                         else:
-                            param = Param(votable,name=totalCabeceras[n], datatype="char", arraysize=str(len(totalValores[n])), value=totalValores[n])
-                            param.description = totalDescripciones[n]
-                            resource.params.append(param)
-            votable.to_xml(votable_output)
-            stri = '    <FITS extnum="2">\n     <STREAM encoding="gzip" href="'+enlaces[i]+'"/>\n    </FITS>\n'
-            stri2 = '    <FITS extnum="3">\n     <STREAM encoding="gzip" href="'+enlaces[i]+'"/>\n    </FITS>\n'
-            
-
-            f = open(votable_output, "r")
-            leido = f.readlines()
-            f.close()
-            os.remove(votable_output)
-
-            hayIni = 0
-            hayFin = 0
-            for n in range(len(leido)):
-                if(leido[n][4:8] == "DATA"):
-                    if(hayIni == 0):
-                        Ini = n+1
-                        hayIni = 1
+                            unidad = totalDescripciones[n].split('(',1)[1].split(')')[0]
+                            flag_u = 1
+                    if(totalValores[n].isdigit() or (totalValores[n].startswith('-') and totalValores[n][1:].isdigit())):
+                        if(flag_u == 1):
+                            param = Param(votable,name=totalCabeceras[n],datatype='int',value=totalValores[n],unit=unidad)
+                        else:
+                            param = Param(votable,name=totalCabeceras[n], datatype="int",value=totalValores[n])
+                        param.description = totalDescripciones[n]
+                        resource.params.append(param)
+                    elif(totalValores[n] == "True" or totalValores[n] == "False"):
+                        param = Param(votable,name=totalCabeceras[n], datatype="boolean",value=totalValores[n])
+                        param.description = totalDescripciones[n]
+                        resource.params.append(param)
                     else:
-                        Ini2 = n+1            
-                if(leido[n][5:9] == "DATA"):
-                    if(hayFin == 0):
-                        Fin = n
-                        hayFin = 1
+                        try:
+                            if(float(totalValores[n])):
+                                if(flag_u == 1):
+                                    param = Param(votable,name=totalCabeceras[n],datatype='float',value=totalValores[n],unit=unidad)
+                                else:
+                                    param = Param(votable,name=totalCabeceras[n], datatype="float",value=totalValores[n])
+                                param.description = totalDescripciones[n]
+                                resource.params.append(param)
+                        except:
+                            if(totalCabeceras[n][0:7] == "COMMENT" or totalCabeceras[n][0:7] == "HISTORY"):
+                                info = Info(name=totalCabeceras[n][0:7], value=totalValores[n])
+                                resource.infos.append(info)
+                            else:
+                                param = Param(votable,name=totalCabeceras[n], datatype="char", arraysize=str(len(totalValores[n])), value=totalValores[n])
+                                param.description = totalDescripciones[n]
+                                resource.params.append(param)
+                votable.to_xml(votable_output)
+                stri = '    <FITS extnum="2">\n     <STREAM encoding="gzip" href="'+enlaces[i]+'"/>\n    </FITS>\n'
+                stri2 = '    <FITS extnum="3">\n     <STREAM encoding="gzip" href="'+enlaces[i]+'"/>\n    </FITS>\n'
+
+                f = open(votable_output, "r")
+                leido = f.readlines()
+                f.close()
+                os.remove(votable_output)
+
+                hayIni = 0
+                hayFin = 0
+                for n in range(len(leido)):
+                    if(leido[n][4:8] == "DATA"):
+                        if(hayIni == 0):
+                            Ini = n+1
+                            hayIni = 1
+                        else:
+                            Ini2 = n+1
+                    if(leido[n][5:9] == "DATA"):
+                        if(hayFin == 0):
+                            Fin = n
+                            hayFin = 1
+                        else:
+                            Fin2 = n
+
+                parte1 = leido[:Ini]
+                parte2 = leido[Fin:Ini2]
+                parte3 = leido[Fin2:]
+
+                file2 = open(votable_output,"w")
+
+                for p1 in range(len(parte1)):
+                    if(parte1[p1][3:10] == "TABLE n"):
+                        if(cont == '2'):
+                            break
+                        file2.write("  <TABLE nrows=\"" + str(len(t)) + "\">" + "\n")
                     else:
-                        Fin2 = n
-    
-            parte1 = leido[:Ini]
-            parte2 = leido[Fin:Ini2]
-            parte3 = leido[Fin2:]
-    
-            file2 = open(votable_output,"w")
-            
-            for p1 in range(len(parte1)):
-                if(parte1[p1][3:10] == "TABLE n"):
-                    file2.write("  <TABLE nrows=\"" + str(len(t)) + "\">" + "\n") 
-                else:
-                    file2.write(parte1[p1])            
-            
-            file2.write(stri)
+                        file2.write(parte1[p1])
+                if(cont == '1'):
+                    file2.write(stri)
 
-            for p2 in range(len(parte2)):
-                if(parte2[p2][3:10] == "TABLE n"):
-                    file2.write("  <TABLE nrows=\"" + str(len(t2)) + "\">" + "\n")
-                else:
-                    file2.write(parte2[p2])
-            
-            file2.write(stri2)
+                for p2 in range(len(parte2)):
+                    if(cont == '1'):
+                        break
+                    if(parte2[p2][3:10] == "TABLE n"):
+                        file2.write("  <TABLE nrows=\"" + str(len(t2)) + "\">" + "\n")
+                    elif(p2 == 0 or p2 == 1):
+                        continue
+                    else:
+                        file2.write(parte2[p2])
 
-            for p3 in range(len(parte3)):
-                file2.write(parte3[p3])    
-                
-            file2.close()  
+                if(cont == '2'):
+                    file2.write(stri2)
+
+                for p3 in range(len(parte3)):
+                    file2.write(parte3[p3])
+                file2.close()
     except:
         flogs.write("LOG: ERROR en la conversion a  VOTable de los " + flag + "\n")
         flogs.close()
@@ -627,9 +655,12 @@ def moverArchivosVOTable(ficherosFITS,flag):
         actual = os.getcwd()
         os.chdir(directorioTransformadosVOTable + flag)
         for n in range(len(ficherosFITS)):
-            filename = ficherosFITS[n].replace(".fits.gz",".vot")
+            filename = ficherosFITS[n].replace(".fits.gz",".1.vot")
+            filename2 = ficherosFITS[n].replace(".fits.gz", ".2.vot")
             os.chmod(filename,int(permisos,8))
-            shutil.move(filename, dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + "/" + filename)
+            os.chmod(filename2,int(permisos,8))
+            shutil.move(filename, dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + '/VOTable/' + filename)
+            shutil.move(filename2,dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + '/VOTable/' + filename2)
         os.chdir(actual)
     except:
         flogs.write("LOG: ERROR al mover los VOTable de los " + flag + "\n")
@@ -646,10 +677,32 @@ def moverArchivosPlot(lc_list, spec_list, flag):
         for n in range(len(lc_list)):
             os.chmod(lc_list[n], int(permisos, 8))
             shutil.move(lc_list[n],
-                        dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + "/" + lc_list[n])
+                        dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + "/Plots/" + lc_list[n])
             os.chmod(spec_list[n], int(permisos, 8))
             shutil.move(spec_list[n],
-                        dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + "/" + spec_list[n])
+                        dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + "/Plots/" + spec_list[n])
+        os.chdir(actual)
+    except:
+        flogs.write("LOG: ERROR al mover los Plots de los " + flag + "\n")
+        flogs.close()
+        shutil.rmtree(directorio)
+        sys.exit(1)
+
+def moverArchivosCSV(t_deteccion, flag):
+    try:
+        actual = os.getcwd()
+        os.chdir(directorio)
+        for n in range(len(t_deteccion)):
+            csv1 = estacion + '_' + t_deteccion[n] + '.1.csv'
+            csv2 = estacion + '_' + t_deteccion[n] + '.2.csv'
+            os.chmod(csv1, int(permisos, 8))
+            os.chmod(csv2, int(permisos, 8))
+            shutil.move(csv1,
+                        dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + "/ASCII/" +
+                        csv1)
+            shutil.move(csv2,
+                        dirGuardados + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + "/ASCII/" +
+                        csv2)
         os.chdir(actual)
     except:
         flogs.write("LOG: ERROR al mover los Plots de los " + flag + "\n")
@@ -754,7 +807,9 @@ for i in ["overdense","fakes","underdense"]:
     moverArchivosVOTable(ficherosFITS,i)
     flogs.write("LOG: Ficheros VOTable de los " + i + " comprimidos y movidos con exito\n")
     moverArchivosPlot(lc_list, spec_list, i)
-    flogs.write("LOG: Ficheros Plot movidos con exito")
+    flogs.write("LOG: Ficheros Plot " + i +" movidos con exito")
+    moverArchivosCSV(t_deteccion, i)
+    flogs.write("LOG: Ficheros CSV " + i + " movidos con exito")
     insertarDatos(t_deteccion,fecha,duration,i)
     flogs.write("LOG: Datos " + i + " insertados a la BBDD con exito\n")
 
