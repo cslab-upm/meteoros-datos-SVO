@@ -161,7 +161,8 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             spec_time = []
             spec_power = []
             spec_frec = []
-            interf = 1 
+            media = float(0.0)
+            interf = False
             f = open(dirGuardados + estacion + dirEchoes + diaExtraido + "/gnuplot/specs/" + flag + "/" + archivos[i] , "r")
             leido = f.readlines()
             f.close()
@@ -203,7 +204,6 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                     d += 968
             #para eventos underdense
             else:
-            
                 t = 967
                 resultado2 = 0
                 while t < len(array_lineas):
@@ -213,39 +213,52 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                             resultado2 = -1
                         break
                     t += 968
-                 
+
                 if(resultado2 == 0):
                     tamIn = 967
                     
                 d = tamIn+968
                 while d < len(array_lineas):
+                    if(resultado2 == 0):
+                        tamFin = d
+                        break
                     if(float(array_lineas[d][6]) < float(umbralBajada)):
                         tamFin = d
                         break
                     d += 968
+
             sinRuido = array_lineas[tamIn-967:tamFin-967]
-            if(resultado2 == 0):
+            div = float(0.0)
+           # deteccion interferencias
+            for length in range(len(sinRuido)):
+                if(len(sinRuido[length]) == 7):
+                    media += float(sinRuido[length][4])
+                    div += float(1.0)
+            media = media / div
+            umbralVariacion = float(12.0)
+            var_dcha = float(0.0)
+            var_izq = float(0.0)
+
+            #Se comprueba si el dato tiene algún punto atípico en frecuencias limites
+            if(flag == 'underdense'):
+                for l in range(len(sinRuido)):
+                    frecuencia = float(sinRuido[l][1])
+                    var = float(sinRuido[l][2]) - media
+                    if(frecuencia > float(143051500) and (var > var_dcha)):
+                        var_dcha = var
+                    elif(frecuencia < float(143048500) and (var > var_izq)):
+                        var_izq = var
+                    else:
+                        continue
+                    if(var_izq > umbralVariacion and var_dcha > umbralVariacion):
+                        interf = True
+                        break
+            else:
+                interf = False
+            if(interf == True):
+                print("Interferencia detectada " + archivos[i])
                 eliminados.append(i)
                 continue
-
-           # deteccion interferencias
-           # for length in range(len(sinRuido)):
-           #     if(len(sinRuido[length]) == 7):
-           #         diferencia.append(sinRuido[length][6])
-           # constante = 1
-           # comprobar si la diferencia se mantiene constante
-           # for cont in range(len(diferencia)):
-           #     if(cont != 0):
-           #         variacion = abs(float(diferencia[cont]) - float(diferencia[cont - 1]))
-           #     if(variacion > float(2) or len(diferencia) == 1):
-           #         constante = 0
-           #         break
-           # if(constante == 0):
-           #    print("No es interferencia")
-           # else:
-           #    eliminados.append(i)
-           #     print("Interferencia detectada " + archivos[i])
-           #     continue
 
             fileTabla1 = open(directorio + "/" + archivos[i].replace('.dat','_tabla1.txt'),"w")
             fileTabla2 = open(directorio + "/" + archivos[i].replace('.dat','_tabla2.txt'),"w")
@@ -262,7 +275,10 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                 if(date == t_deteccion[last]):
                     eliminados.append(i)
                     continue
-            if(dur <= 0):
+            if(resultado2 == 0):
+                zero = round(0.0)
+                duracion.append(zero)
+            elif(dur <= 0):
                 duracion.append(default)
             else:
                 duracion.append(dur)
@@ -300,7 +316,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                 spec_time.append(float(ts))
                 spec_frec.append(float(sinRuido[l][1]))
                 spec_power.append(float(sinRuido[l][2]))
-                if(len(sinRuido[l]) == 7):
+                if(len(sinRuido[l]) == 7 and resultado2 != 0):
                     fileTabla2.write(t + ' ' + sinRuido[l][0] + ' ' + ' ' + sinRuido[l][4] + ' ' + sinRuido[l][5] + ' ' + sinRuido[l][6] + '\n')
                     lc_csv.write(t + ',' + sinRuido[l][0] + ',' + sinRuido[l][4] + ',' + sinRuido[l][5] + ',' + sinRuido[l][6] + '\n')
                     lc_peak.append(float(sinRuido[l][5]))
@@ -322,7 +338,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             plt.plot(lc_time,lc_peak)
             plt.title('Light Curve')
             plt.xlabel('Epoch Time (s)')
-            plt.ylabel('Peak power (dB)')
+            plt.ylabel('Peak Power (dB)')
             lc = directorioPlots + flag  + '/' + estacion + '_' + date + '.lc.png'
             plt.savefig(lc)
             lc_list.append(estacion + '_' + date + '.lc.png')
@@ -330,13 +346,17 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             #plot del espectograma
             plt.figure(figsize=(14,12))
             x = np.array(spec_frec)
+            x = np.flipud(x)
             y = np.array(spec_time)
+            y = np.flipud(y)
             z = np.array(spec_power)
+            z = np.flipud(z)
             sp = pd.DataFrame.from_dict(np.array([x,y,z]).T)
             sp.columns = ['frec','time','power']
             sp['power'] = pd.to_numeric(sp['power'])
             sp_pv = sp.pivot('time','frec','power')
-            sns.heatmap(sp_pv,cbar_kws={'label':'Power (dB)'})
+            ax = sns.heatmap(sp_pv,cbar_kws={'label':'Power (dB)'},vmin=-150, vmax=-80,cmap='CMRmap')
+            ax.invert_yaxis()
             plt.title('Spectrogram')
             plt.xlabel('Frecuency (Hz)')
             plt.ylabel('Epoch Time (s)')
