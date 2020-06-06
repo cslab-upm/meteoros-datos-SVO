@@ -507,12 +507,12 @@ def moverArchivosFITS(ficherosFITS,flag):
 # Funcion que obtiene los enlaaces para los VOTable
 def enlacesVOTable(flag):
     try:
-        r  = requests.get(raiz + estacion + dirDatosAbiertos + diaExtraido + "/" + flag)
+        r  = requests.get(raiz + estacion + dirDatosAbiertos + diaExtraido + "/FITS/" + flag)
         data = r.text
         soup = BeautifulSoup(data,'html.parser')
         for link in soup.find_all('a'):
             if(link.get('href').find("gz") != -1):
-                url = raiz + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + "/" + link.get('href')
+                url = raiz + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + "/FITS/" + link.get('href')
                 enlaces.append(url)   
     except:
         flogs.write("LOG: ERROR en la obtencion de los enlaces para los VOTable de los " + flag + "\n")
