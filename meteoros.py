@@ -507,7 +507,7 @@ def moverArchivosFITS(ficherosFITS,flag):
 # Funcion que obtiene los enlaaces para los VOTable
 def enlacesVOTable(flag):
     try:
-        r  = requests.get(raiz + estacion + dirDatosAbiertos + diaExtraido + "/FITS/" + flag)
+        r  = requests.get(raiz + estacion + dirDatosAbiertos + diaExtraido + "/" + flag + "/FITS")
         data = r.text
         soup = BeautifulSoup(data,'html.parser')
         for link in soup.find_all('a'):
