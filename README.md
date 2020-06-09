@@ -41,6 +41,10 @@ Para la correcta ejecución del software, es necesario instalar **python3** y ci
 **MySQL connector**
 
     pip3 install mysql-connector-python
+    
+**Seaborn**
+    
+    pip install seaborn
 
 ## Base de datos MySQL
 
