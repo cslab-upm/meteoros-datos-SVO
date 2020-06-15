@@ -740,7 +740,7 @@ def insertarDatos(meteoro_id,fecha,duracion,flag):
             day = meteoro_id[0][0:10]
         for l in range(len(fecha)):
             m_id = 'fuenlabrada_' + meteoro_id[l]
-            add_meteoro = ("INSERT INTO datos_meteoros " "(ID,DATE,STATION,DURATION,DAY,TYPE) " "VALUES (%s, %s, %s, %s, %s, %s)")
+            add_meteoro = ("INSERT IGNORE INTO datos_meteoros " "(ID,DATE,STATION,DURATION,DAY,TYPE) " "VALUES (%s, %s, %s, %s, %s, %s)")
             data_meteoro = (m_id,fecha[l],estacion,duracion[l],day,flag)
             cursor.execute(add_meteoro,data_meteoro)
             cnx.commit()
