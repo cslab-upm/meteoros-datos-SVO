@@ -6,7 +6,7 @@ El programa realizará la tarea de recopilar toda la información útil a partir
 
 Además, el programa insertará los datos de los meteoros diarios a una base de datos MySQL local, lo cual permite usarlo en el software _SVOCat_ desarrollado por SVO para la publicación de los datos.
 
-El sintaxis para ejecutar el script es el siguiente:
+La sintaxis para ejecutar el script es el siguiente:
 
     ./meteoros.sh estacion YYYY-MM-DD
 
