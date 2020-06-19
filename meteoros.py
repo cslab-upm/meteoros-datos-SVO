@@ -731,13 +731,39 @@ def moverArchivosCSV(t_deteccion, flag):
         sys.exit(1)
 
         # Funcion que inserta los datos de los meteoros a la DDBB
-def insertarDatos(meteoro_id,fecha,duracion,flag):
+def moverArchivoStats(stats,flag):
+    try:
+        if(flag =='overdense'):
+            actual = os.getcwd()
+            os.chdir(dirGuardados + estacion + dirEchoes + diaExtraido + '/stats')
+            stats = 'scan_2019-02-25-test_automatic_' + diaExtraido + '.csv'
+            stats_copia = 'scan_2019-02-25-test_automatic_' + diaExtraido + '_copia' + '.csv'
+            shutil.copy(stats,stats_copia)
+            fichero_stat = dirGuardados + estacion + dirEchoes + diaExtraido + '/stats/' + stats
+            os.chmod(fichero_stat, int(permisos, 8))
+            shutil.move(fichero_stat,dirGuardados + estacion + dirDatosAbiertos + diaExtraido)
+            os.chdir(actual)
+            stats = raiz + estacion + dirDatosAbiertos + diaExtraido + '/' + stats
+    except:
+        flogs.write("LOG: ERROR al mover el archivo stats\n")
+        flogs.close()
+        shutil.rmtree(directorio)
+        sys.exit(1)
+
+def insertarDatos(meteoro_id,fecha,duracion,flag,stats):
     try:
         #conexion con la DDBB
         cnx = mysql.connector.connect(user=username,password=password,host='localhost',database='meteorosdb')
         cursor = cnx.cursor()
         if(len(meteoro_id)!=0):
             day = meteoro_id[0][0:10]
+        if(flag == 'overdense'):
+            stats = stats = raiz + estacion + dirDatosAbiertos + diaExtraido + '/' + 'scan_2019-02-25-test_automatic_' + diaExtraido + '.csv'
+            add_stats = ("INSERT IGNORE INTO daily_stat " "(DAY,STATION,LINK) " "VALUES (%s, %s, %s)")
+            data_stats = (day,estacion,stats)
+            print(stats)
+            cursor.execute(add_stats,data_stats)
+            cnx.commit()
         for l in range(len(fecha)):
             m_id = 'fuenlabrada_' + meteoro_id[l]
             add_meteoro = ("INSERT IGNORE INTO datos_meteoros " "(ID,DATE,STATION,DURATION,DAY,TYPE) " "VALUES (%s, %s, %s, %s, %s, %s)")
@@ -797,6 +823,7 @@ for i in ["overdense","fakes","underdense"]:
     fecha = []
     spec_list = []
     lc_list = []
+    stats = ''
     try:
         dirs = os.listdir(dirGuardados + estacion + dirEchoes + diaExtraido + "/screenshots/" + i)
         for file in dirs:
@@ -824,13 +851,14 @@ for i in ["overdense","fakes","underdense"]:
     enlacesVOTable(i)
     conversionVOTable(array_dats,i,t_deteccion,duration)
     flogs.write("LOG: Conversion de fits a VOTable de los " + i + " realizada con exito\n")
+    moverArchivoStats(stats,i)
     moverArchivosVOTable(ficherosFITS,i)
     flogs.write("LOG: Ficheros VOTable de los " + i + " comprimidos y movidos con exito\n")
     moverArchivosPlot(lc_list, spec_list, i)
     flogs.write("LOG: Ficheros Plot " + i +" movidos con exito")
     moverArchivosCSV(t_deteccion, i)
     flogs.write("LOG: Ficheros CSV " + i + " movidos con exito")
-    insertarDatos(t_deteccion,fecha,duration,i)
+    insertarDatos(t_deteccion,fecha,duration,i,stats)
     flogs.write("LOG: Datos " + i + " insertados a la BBDD con exito\n")
 
 shutil.rmtree(directorio)
