@@ -16,6 +16,21 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `daily_stat`
+--
+
+DROP TABLE IF EXISTS `daily_stat`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `daily_stat` (
+  `DAY` varchar(50) NOT NULL,
+  `STATION` varchar(50) NOT NULL,
+  `LINK` varchar(200) NOT NULL,
+  PRIMARY KEY (`LINK`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `datos_meteoros`
 --
 
@@ -42,4 +57,4 @@ CREATE TABLE `datos_meteoros` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-06-02 22:15:23
+-- Dump completed on 2020-06-19 19:32:05
