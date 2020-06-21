@@ -105,7 +105,7 @@ Existen cinco secciones personalizables en el archivo de configuración:
 - **[EcoOverdense]** Determina el tiempo máximo (ms) utilizado en el caso de eco sobredenso para determinar si la señal corresponde al mismo eco
 
 
-##Instalación de la aplicaión SVOCat
+## Instalación de la aplicación SVOCat
 
 Para hacer funcionar la aplicación, es necesario un entorno Linux con un servidor web apache, un gestor de base de datos MySQL y el lenguaje de programación PHP.
 
@@ -125,13 +125,18 @@ Cuando se tenga instalado el paquete, es necesario descomprimir el archivo compr
 Una vez descomprimida la aplicación, hay que definir los permisos para esta aplicación. Todos los archivos de la aplicación deben ser accesibles por el usuario www-data. Por ejemplo, puede ejecutar:
 
     cd $directorio
+    
     sudo chmod -R ugo+r .
+    
     sudo chmod ugo+x `find . -type d`
 
 Además, existen dos directorios especiales /work y /config. El servidor debe tener permiso de lectura y escritura de estos directorios y todos los archivos de estos directorios.
 
     cd $directorio
+    
     sudo chown -R $user:www-data config/ work/
+    
     sudo chmod g+rwx config/ work/
+    
     sudo chmod -R g+rw config/ work/
 
