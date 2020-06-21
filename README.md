@@ -114,6 +114,7 @@ Una forma sencilla de instalar todos estos paquetes es instalar el paquete LAMP 
 
 
     sudo apt-get install tasksel
+    
     sudo tasksel install lamp-server
     
     
