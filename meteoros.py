@@ -176,8 +176,8 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             #para cada instante toma 968 muestras
             resultado2 = -1
             tamIn = 967
-            if(flag == "overdense" or flag == "fakes"): 
-		        t = 967
+            if(flag == "overdense" or flag == "fakes"):
+                t = 967
                 #comprueba el umbral de subida para el inicio de la señal
                 while t < len(array_lineas):
                     if(float(array_lineas[t][6]) > float(umbralSubida)):
