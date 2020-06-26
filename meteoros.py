@@ -175,8 +175,9 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                     array_lineas.append(final)
             #para cada instante toma 968 muestras
             resultado2 = -1
+            tamIn = 967
             if(flag == "overdense" or flag == "fakes"): 
-                t = 967
+		t = 967
                 #comprueba el umbral de subida para el inicio de la señal
                 while t < len(array_lineas):
                     if(float(array_lineas[t][6]) > float(umbralSubida)):
@@ -228,7 +229,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                     d += 968
 
             sinRuido = array_lineas[tamIn-967:tamFin-967]
-            div = float(0.0)
+            div = float(0.00001)
            # deteccion interferencias
             for length in range(len(sinRuido)):
                 if(len(sinRuido[length]) == 7):
@@ -256,7 +257,6 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             else:
                 interf = False
             if(interf == True):
-                print("Interferencia detectada " + archivos[i])
                 eliminados.append(i)
                 continue
 
@@ -725,7 +725,7 @@ def moverArchivosCSV(t_deteccion, flag):
                         csv2)
         os.chdir(actual)
     except:
-        flogs.write("LOG: ERROR al mover los Plots de los " + flag + "\n")
+        flogs.write("LOG: ERROR al mover los CSVs de los " + flag + "\n")
         flogs.close()
         shutil.rmtree(directorio)
         sys.exit(1)
@@ -733,7 +733,7 @@ def moverArchivosCSV(t_deteccion, flag):
         # Funcion que inserta los datos de los meteoros a la DDBB
 def moverArchivoStats(stats,flag):
     try:
-        if(flag =='overdense'):
+        if(flag =='underdense'):
             actual = os.getcwd()
             os.chdir(dirGuardados + estacion + dirEchoes + diaExtraido + '/stats')
             stats = 'scan_2019-02-25-test_automatic_' + diaExtraido + '.csv'
@@ -757,11 +757,10 @@ def insertarDatos(meteoro_id,fecha,duracion,flag,stats):
         cursor = cnx.cursor()
         if(len(meteoro_id)!=0):
             day = meteoro_id[0][0:10]
-        if(flag == 'overdense'):
+        if(flag == 'underdense'):
             stats = stats = raiz + estacion + dirDatosAbiertos + diaExtraido + '/' + 'scan_2019-02-25-test_automatic_' + diaExtraido + '.csv'
             add_stats = ("INSERT IGNORE INTO daily_stat " "(DAY,STATION,LINK) " "VALUES (%s, %s, %s)")
             data_stats = (day,estacion,stats)
-            print(stats)
             cursor.execute(add_stats,data_stats)
             cnx.commit()
         for l in range(len(fecha)):
@@ -855,9 +854,9 @@ for i in ["overdense","fakes","underdense"]:
     moverArchivosVOTable(ficherosFITS,i)
     flogs.write("LOG: Ficheros VOTable de los " + i + " comprimidos y movidos con exito\n")
     moverArchivosPlot(lc_list, spec_list, i)
-    flogs.write("LOG: Ficheros Plot " + i +" movidos con exito")
+    flogs.write("LOG: Ficheros Plot " + i +" movidos con exito\n")
     moverArchivosCSV(t_deteccion, i)
-    flogs.write("LOG: Ficheros CSV " + i + " movidos con exito")
+    flogs.write("LOG: Ficheros CSV " + i + " movidos con exito\n")
     insertarDatos(t_deteccion,fecha,duration,i,stats)
     flogs.write("LOG: Datos " + i + " insertados a la BBDD con exito\n")
 
