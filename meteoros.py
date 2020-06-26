@@ -177,7 +177,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             resultado2 = -1
             tamIn = 967
             if(flag == "overdense" or flag == "fakes"): 
-                t = 967
+		t = 967
                 #comprueba el umbral de subida para el inicio de la señal
                 while t < len(array_lineas):
                     if(float(array_lineas[t][6]) > float(umbralSubida)):
@@ -229,7 +229,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                     d += 968
 
             sinRuido = array_lineas[tamIn-967:tamFin-967]
-            div = float(0.0)
+            div = float(0.00001)
            # deteccion interferencias
             for length in range(len(sinRuido)):
                 if(len(sinRuido[length]) == 7):
@@ -725,7 +725,7 @@ def moverArchivosCSV(t_deteccion, flag):
                         csv2)
         os.chdir(actual)
     except:
-        flogs.write("LOG: ERROR al mover los Plots de los " + flag + "\n")
+        flogs.write("LOG: ERROR al mover los CSVs de los " + flag + "\n")
         flogs.close()
         shutil.rmtree(directorio)
         sys.exit(1)
