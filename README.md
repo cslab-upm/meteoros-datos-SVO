@@ -141,7 +141,7 @@ Además, existen dos directorios especiales /work y /config. El servidor debe te
     
     sudo chmod -R g+rw config/ work/
 
-##Shell Script
+## Shell Script
 
 En el repositorio también se encuentra el script ***mesmeteoros.sh***, el script sirve para automatizar el proceso de ejecutar archivos de meteoros de un mes concreto. La sintaxis sería:
     
