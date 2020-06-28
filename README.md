@@ -141,3 +141,10 @@ Además, existen dos directorios especiales /work y /config. El servidor debe te
     
     sudo chmod -R g+rw config/ work/
 
+##Shell Script##
+
+En el repositorio también se encuentra el script ***mesmeteoros.sh***, el script sirve para automatizar el proceso de ejecutar archivos de meteoros de un mes concreto. La sintaxis sería:
+    
+    nohup ./mesmeteoros.sh estacion YYYY-MM dia_inicio dia_fin &
+    
+Utilizando este script, podrá ejecutar el script Python para el mes que quiera en el intervalo seleccionado. Cabe destacar el uso del `nohup` para evitar que el proceso muera ante la señal SIGHUP que se produce cuando un terminal se desconecta. Al utilizar nohup, se creará también un archivo llamada nohup.out en la misma carpeta del script, que es el encargado de recoger todos los mensajes que aparece en el terminal. Puede consultar ese archivo para verificar si todos los scripts se han ejecutado de forma correcta.
