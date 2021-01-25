@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 import requests
 import shutil
 import numpy as np
+from matplotlib import pylab
 from PIL import Image
 from PIL import ImageOps
 from astropy.io import fits
@@ -173,39 +174,48 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                 final = [p for p in lineas if p ]
                 if(final):
                     array_lineas.append(final)
-            #para cada instante toma 968 muestras
+            
             resultado2 = -1
-            tamIn = 967
+
+            #para cada instante toma 968 muestras. Ahora este número no es fijo.
+            # Las siguientes líneas determinan el número de muestras para cada instante.
+            for h,line in enumerate(array_lineas):
+                if len(line) > 3:
+                    nFrequencies = h
+                    nBtwFrequencies = h + 1
+                    break
+		
+            tamIn = nFrequencies
             if(flag == "overdense" or flag == "fakes"):
-                t = 967
+                t = nFrequencies
                 #comprueba el umbral de subida para el inicio de la señal
                 while t < len(array_lineas):
                     if(float(array_lineas[t][6]) > float(umbralSubida)):
                         tamIn = t
                         break
-                    t += 968
+                    t += nBtwFrequencies
             
-                d = tamIn+968
+                d = tamIn + nBtwFrequencies
 
                 while d < len(array_lineas):
                     c = 0
                     resultado = 0
                     if(float(array_lineas[d][6]) < float(umbralBajada)):
-                        k = d+968
+                        k = d + nBtwFrequencies
                         #comprueba si la señal vuelve a subir durante 1s
                         while c < duracionEco and k < len(array_lineas):
                             if(float(array_lineas[k][6]) > float(umbralSubida)):
                                 resultado = -1
                                 break
                             c += 1
-                            k += 968
+                            k += nBtwFrequencies
                         if(resultado == 0):
                             tamFin = d
                             break
-                    d += 968
+                    d += nBtwFrequencies
             #para eventos underdense
             else:
-                t = 967
+                t = nFrequencies
                 resultado2 = 0
                 while t < len(array_lineas):
                     if(float(array_lineas[t][6]) > float(umbralSubida)):
@@ -213,12 +223,12 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                         if(t < len(array_lineas)-1000):
                             resultado2 = -1
                         break
-                    t += 968
+                    t += nBtwFrequencies
 
                 if(resultado2 == 0):
-                    tamIn = 967
+                    tamIn = nFrequencies
                     
-                d = tamIn+968
+                d = tamIn + nBtwFrequencies
                 while d < len(array_lineas):
                     if(resultado2 == 0):
                         tamFin = d
@@ -226,9 +236,9 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                     if(float(array_lineas[d][6]) < float(umbralBajada)):
                         tamFin = d
                         break
-                    d += 968
+                    d += nBtwFrequencies
 
-            sinRuido = array_lineas[tamIn-967:tamFin-967]
+            sinRuido = array_lineas[tamIn-nFrequencies:tamFin-nFrequencies]
             div = float(0.00001)
            # deteccion interferencias
             for length in range(len(sinRuido)):
@@ -239,7 +249,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             umbralVariacion = float(12.0)
             var_dcha = float(0.0)
             var_izq = float(0.0)
-
+            
             #Se comprueba si el dato tiene algún punto atípico en frecuencias limites
             if(flag == 'underdense'):
                 for l in range(len(sinRuido)):
@@ -259,7 +269,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             if(interf == True):
                 eliminados.append(i)
                 continue
-
+                
             fileTabla1 = open(directorio + "/" + archivos[i].replace('.dat','_tabla1.txt'),"w")
             fileTabla2 = open(directorio + "/" + archivos[i].replace('.dat','_tabla2.txt'),"w")
             
@@ -284,7 +294,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                 duracion.append(dur)
             
             t_deteccion.append(date)
-
+            
             date_sql = datetime.datetime.utcfromtimestamp(t_ini).strftime('%Y/%m/%d-%H:%M:%S.%f')
             date_sql = date_sql[:-4]
             fecha.append(date_sql)
@@ -292,14 +302,21 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             #generar archivos csv
             sp_csv = open(directorio + "/" + estacion + '_' + date + '.1.csv',"w")
             lc_csv = open(directorio + "/" + estacion + '_' + date + '.2.csv',"w")
-
-	        #introducir muestra de ruido para visualizar mejor la curva de luz
+            
+            #introducir muestra de ruido para visualizar mejor la curva de luz
             longitud = len(array_lineas)
             peak = str(array_lineas[longitud-1][5])
             average = str(array_lineas[longitud-1][4])
-            for l in range(6):
+	
+            # Se normalizan todas las muestras a 45 s, la duración de la muestra más larga. En caso de que su duración fuera mayor, se añade 1 segundo.
+            if dur < 45000:
+                ext_ind = (45000 - dur) / (1000 * 2)  # El tiempo, en segundos, de ruido que hay que añadir antes y después.
+            else:
+                ext_ind = 0.5
+		
+            for l in range(round(ext_ind * 10)):
                 if(l != 0):
-                    ts = float(t_ini - 0.5 + 0.1*l)
+                    ts = float(t_ini - ext_ind + 0.1*l)
                     t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
                     t = t[:-4]
                     fileTabla2.write(str(t) + ' ' + str(ts) + ' ' + str(average) + ' ' + str(peak) + ' ' + '0' + '\n')
@@ -322,7 +339,7 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                     lc_peak.append(float(sinRuido[l][5]))
                     lc_time.append(float(ts))
 	        #introducir muestra de ruido al final
-            for l in range(6):
+            for l in range(round(ext_ind * 10)):
                 if(l != 0):
                     ts = float(t_fin + 0.1*l)
                     t = datetime.datetime.utcfromtimestamp(ts).strftime('%Y/%m/%d-%H:%M:%S.%f')
@@ -331,10 +348,13 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                     lc_csv.write(str(t) + ',' + str(ts) + ',' + str(average) + ',' + str(peak) + ',' + '0' + '\n')
                     lc_peak.append(float(peak))
                     lc_time.append(float(ts))
-
+                    
             #Fuente
             plt.rcParams["font.family"] = "serif"
+		
             #plot de la curva de luz
+            plt.figure(figsize=(14,12))
+            plt.rcParams.update({'font.size': 20})
             plt.plot(lc_time,lc_peak)
             plt.title('Light Curve')
             plt.xlabel('Epoch Time (s)')
@@ -343,8 +363,14 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             plt.savefig(lc)
             lc_list.append(estacion + '_' + date + '.lc.png')
             plt.close()
+            
             #plot del espectograma
+            num_x_ticks = 10
+            num_y_ticks = 5
+
             plt.figure(figsize=(14,12))
+            plt.rcParams.update({'font.size': 20})
+            
             x = np.array(spec_frec)
             x = np.flipud(x)
             y = np.array(spec_time)
@@ -355,8 +381,28 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
             sp.columns = ['frec','time','power']
             sp['power'] = pd.to_numeric(sp['power'])
             sp_pv = sp.pivot('time','frec','power')
+            
+            xticks = np.linspace(1, sp_pv.shape[1] - 1, num_x_ticks, dtype=np.int)
+            
+            if(sp_pv.shape[0]>num_y_ticks):
+                    yticks = np.linspace(1, sp_pv.shape[0] - 1, num_y_ticks, dtype=np.int)
+            else:
+                    yticks = np.array(range(1,sp_pv.shape[0]))
+
+            xticklabels = [sp_pv.columns[l]-min(sp_pv.columns) for l in xticks]
+            yticklabels = ["{:.2f}".format(sp_pv.index[l]-min(sp_pv.index)) for l in yticks]
+            
+            pylab.text(-0.1, 1.02, "+%g" % min(sp_pv.index), transform = pylab.gca().transAxes)
+            pylab.text(1, -0.14, "+%g" % min(sp_pv.columns), transform = pylab.gca().transAxes)
+
             ax = sns.heatmap(sp_pv,cbar_kws={'label':'Power (dB)'},vmin=-150, vmax=-80,cmap='CMRmap')
+            ax.set_xticks(xticks)
+            ax.set_xticklabels(xticklabels)
+            ax.set_yticks(yticks)
+            ax.set_yticklabels(yticklabels)
+            
             ax.invert_yaxis()
+            plt.setp(ax.get_xticklabels(), rotation=45, ha="right",rotation_mode="anchor")          
             plt.title('Spectrogram')
             plt.xlabel('Frecuency (Hz)')
             plt.ylabel('Epoch Time (s)')
@@ -374,7 +420,6 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
         flogs.close()
         shutil.rmtree(directorio)
         sys.exit(1)
-        
 
 # Funcion que convierte los archivos a fits
 def conversionfits(archivosscreenshots,archivosdat,flag,duracion,eliminados,t_deteccion):
@@ -736,8 +781,8 @@ def moverArchivoStats(stats,flag):
         if(flag =='underdense'):
             actual = os.getcwd()
             os.chdir(dirGuardados + estacion + dirEchoes + diaExtraido + '/stats')
-            stats = 'scan_2019-02-25-test_automatic_' + diaExtraido + '.csv'
-            stats_copia = 'scan_2019-02-25-test_automatic_' + diaExtraido + '_copia' + '.csv'
+            stats = 'scan_Fuenlabrada_automatic_' + diaExtraido + '.csv'
+            stats_copia = 'scan_Fuenlabrada_automatic_' + diaExtraido + '_copia' + '.csv'
             shutil.copy(stats,stats_copia)
             fichero_stat = dirGuardados + estacion + dirEchoes + diaExtraido + '/stats/' + stats
             os.chmod(fichero_stat, int(permisos, 8))
@@ -758,7 +803,7 @@ def insertarDatos(meteoro_id,fecha,duracion,flag,stats):
         if(len(meteoro_id)!=0):
             day = meteoro_id[0][0:10]
         if(flag == 'underdense'):
-            stats = stats = raiz + estacion + dirDatosAbiertos + diaExtraido + '/' + 'scan_2019-02-25-test_automatic_' + diaExtraido + '.csv'
+            stats = stats = raiz + estacion + dirDatosAbiertos + diaExtraido + '/' + 'scan_Fuenlabrada_automatic_' + diaExtraido + '.csv'
             add_stats = ("INSERT IGNORE INTO daily_stat " "(DAY,STATION,LINK) " "VALUES (%s, %s, %s)")
             data_stats = (day,estacion,stats)
             cursor.execute(add_stats,data_stats)
