@@ -173,39 +173,45 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                 final = [p for p in lineas if p ]
                 if(final):
                     array_lineas.append(final)
-            #para cada instante toma 968 muestras
             resultado2 = -1
-            tamIn = 967
+	
+            for h,line in enumerate(array_lineas):
+            if len(line) > 3:
+                nFrequencies = h
+                nBtwFrequencies = h + 1
+                break
+		
+            tamIn = nFrequencies
             if(flag == "overdense" or flag == "fakes"):
-                t = 967
+                t = nFrequencies
                 #comprueba el umbral de subida para el inicio de la señal
                 while t < len(array_lineas):
                     if(float(array_lineas[t][6]) > float(umbralSubida)):
                         tamIn = t
                         break
-                    t += 968
+                    t += nBtwFrequencies
             
-                d = tamIn+968
+                d = tamIn+nBtwFrequencies
 
                 while d < len(array_lineas):
                     c = 0
                     resultado = 0
                     if(float(array_lineas[d][6]) < float(umbralBajada)):
-                        k = d+968
+                        k = d+nBtwFrequencies
                         #comprueba si la señal vuelve a subir durante 1s
                         while c < duracionEco and k < len(array_lineas):
                             if(float(array_lineas[k][6]) > float(umbralSubida)):
                                 resultado = -1
                                 break
                             c += 1
-                            k += 968
+                            k += nBtwFrequencies
                         if(resultado == 0):
                             tamFin = d
                             break
-                    d += 968
+                    d += nBtwFrequencies
             #para eventos underdense
             else:
-                t = 967
+                t = nFrequencies
                 resultado2 = 0
                 while t < len(array_lineas):
                     if(float(array_lineas[t][6]) > float(umbralSubida)):
@@ -213,12 +219,12 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                         if(t < len(array_lineas)-1000):
                             resultado2 = -1
                         break
-                    t += 968
+                    t += nBtwFrequencies
 
                 if(resultado2 == 0):
-                    tamIn = 967
+                    tamIn = nFrequencies
                     
-                d = tamIn+968
+                d = tamIn+nBtwFrequencies
                 while d < len(array_lineas):
                     if(resultado2 == 0):
                         tamFin = d
@@ -226,9 +232,9 @@ def manejodats(archivos,flag,duracion,eliminados,t_deteccion,fecha,lc_list,spec_
                     if(float(array_lineas[d][6]) < float(umbralBajada)):
                         tamFin = d
                         break
-                    d += 968
+                    d += nBtwFrequencies
 
-            sinRuido = array_lineas[tamIn-967:tamFin-967]
+            sinRuido = array_lineas[tamIn-nFrequencies:tamFin-nFrequencies]
             div = float(0.00001)
            # deteccion interferencias
             for length in range(len(sinRuido)):
