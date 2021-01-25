@@ -781,8 +781,8 @@ def moverArchivoStats(stats,flag):
         if(flag =='underdense'):
             actual = os.getcwd()
             os.chdir(dirGuardados + estacion + dirEchoes + diaExtraido + '/stats')
-            stats = 'scan_2019-02-25-test_automatic_' + diaExtraido + '.csv'
-            stats_copia = 'scan_2019-02-25-test_automatic_' + diaExtraido + '_copia' + '.csv'
+            stats = 'scan_Fuenlabrada_automatic_' + diaExtraido + '.csv'
+            stats_copia = 'scan_Fuenlabrada_automatic_' + diaExtraido + '_copia' + '.csv'
             shutil.copy(stats,stats_copia)
             fichero_stat = dirGuardados + estacion + dirEchoes + diaExtraido + '/stats/' + stats
             os.chmod(fichero_stat, int(permisos, 8))
@@ -803,7 +803,7 @@ def insertarDatos(meteoro_id,fecha,duracion,flag,stats):
         if(len(meteoro_id)!=0):
             day = meteoro_id[0][0:10]
         if(flag == 'underdense'):
-            stats = stats = raiz + estacion + dirDatosAbiertos + diaExtraido + '/' + 'scan_2019-02-25-test_automatic_' + diaExtraido + '.csv'
+            stats = stats = raiz + estacion + dirDatosAbiertos + diaExtraido + '/' + 'scan_Fuenlabrada_automatic_' + diaExtraido + '.csv'
             add_stats = ("INSERT IGNORE INTO daily_stat " "(DAY,STATION,LINK) " "VALUES (%s, %s, %s)")
             data_stats = (day,estacion,stats)
             cursor.execute(add_stats,data_stats)
